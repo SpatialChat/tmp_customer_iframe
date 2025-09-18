@@ -1,18 +1,13 @@
 <!DOCTYPE html>
-<html>
-  <head></head>
-  <body
-    style="background: black; 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;"
-  >
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-L01E35QN07"
-    ></script>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spatial Expo HQ</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="home-page">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-L01E35QN07"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag() {
@@ -21,8 +16,50 @@
       gtag("js", new Date());
       gtag("config", "G-L01E35QN07");
     </script>
-    <img
-      src="https://devsummit.arm.com/_assets/images/arm-devsummit-logo.svg"
-    />
+    <main>
+      <header class="page-header">
+        <p>Welcome to</p>
+        <h1>Spatial Expo Hall</h1>
+        <p>
+          Explore the expo floor by tapping a hall below. Each hall showcases a
+          dedicated breakout, stage, and workplace experience hosted inside
+          SpatialChat.
+        </p>
+      </header>
+      <section class="map-board" aria-label="Expo hall map">
+        <img
+          src="map-1-detail-2025.png"
+          alt="Illustrated map highlighting the Minneapolis Convention Center"
+        />
+        <div class="map-overlay">
+          <a class="map-hotspot zone-a" href="hall-a.html"><span>Hall A</span></a>
+          <a class="map-hotspot zone-b" href="hall-b.html"><span>Hall B</span></a>
+          <a class="map-hotspot zone-c" href="hall-c.html"><span>Hall C</span></a>
+          <a class="map-hotspot zone-d" href="hall-d.html"><span>Hall D</span></a>
+          <a class="map-hotspot zone-e" href="hall-e.html"><span>Hall E</span></a>
+          <a class="map-hotspot zone-f" href="hall-f.html"><span>Hall F</span></a>
+          <a class="map-hotspot zone-g" href="hall-g.html"><span>Hall G</span></a>
+          <a class="map-hotspot zone-h" href="hall-h.html"><span>Hall H</span></a>
+          <a class="map-hotspot zone-i" href="hall-i.html"><span>Hall I</span></a>
+          <a class="map-hotspot zone-j" href="hall-j.html"><span>Hall J</span></a>
+          <a class="map-hotspot zone-k" href="hall-k.html"><span>Hall K</span></a>
+          <a class="map-hotspot zone-l" href="hall-l.html"><span>Hall L</span></a>
+        </div>
+      </section>
+      <div class="home-footer">
+        <p>
+          Need a quick jump? Choose a hall on the map above or use the direct
+          links below.
+        </p>
+        <p>
+          <a href="hall-a.html">Hall A</a> · <a href="hall-b.html">Hall B</a>
+          · <a href="hall-c.html">Hall C</a> · <a href="hall-d.html">Hall D</a>
+          · <a href="hall-e.html">Hall E</a> · <a href="hall-f.html">Hall F</a>
+          · <a href="hall-g.html">Hall G</a> · <a href="hall-h.html">Hall H</a>
+          · <a href="hall-i.html">Hall I</a> · <a href="hall-j.html">Hall J</a>
+          · <a href="hall-k.html">Hall K</a> · <a href="hall-l.html">Hall L</a>
+        </p>
+      </div>
+    </main>
   </body>
 </html>
