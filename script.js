@@ -112,6 +112,16 @@
     }
 
     host.appendChild(panel);
+
+    // Auto-dismiss after 10 seconds with fade-out
+    setTimeout(() => {
+      panel.style.animation = 'fadeOut 0.4s ease-out';
+      setTimeout(() => {
+        if (panel.parentNode === host) {
+          host.removeChild(panel);
+        }
+      }, 400);
+    }, 10000);
   }
 
   function generateRequestId(prefix) {
@@ -383,27 +393,35 @@
 
     driver.defineSteps([
       {
+        element: '.page-header h1',
+        popover: {
+          title: 'Welcome to Spatial Expo Hall',
+          description: 'Navigate through the interactive expo floor to explore different halls and experiences.',
+          position: 'bottom',
+        },
+      },
+      {
         element: '.map-board',
         popover: {
-          title: 'Explore the expo map',
-          description: 'Pick any hall to jump straight into its SpatialChat experience.',
-          position: 'bottom',
+          title: 'Interactive Expo Map',
+          description: 'Click on any hall zone to explore its dedicated experiences. Each hall has unique rooms and content.',
+          position: 'top',
         },
       },
       {
-        element: '#hall-a-breakout',
+        element: '.zone-a',
         popover: {
-          title: 'Choose a room',
-          description: 'Each hall opens Breakout, Stage, or Workplace rooms inside SpatialChat. Pick one to continue.',
-          position: 'bottom',
+          title: 'Hall Navigation',
+          description: 'Click any hall to explore Breakout, Stage, and Workplace rooms inside SpatialChat.',
+          position: 'right',
         },
       },
       {
-        element: '#expo-notifications',
+        element: '#start-tour',
         popover: {
-          title: 'One more thing',
-          description: 'If the host can’t switch rooms automatically, we’ll show a toast right here with a direct SpatialChat link.',
-          position: 'left',
+          title: 'Need Help?',
+          description: 'You can always restart the tour by clicking this button.',
+          position: 'top',
         },
       },
     ]);
