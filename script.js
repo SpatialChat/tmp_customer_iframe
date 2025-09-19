@@ -435,7 +435,9 @@
     const relaunchButton = document.getElementById('start-tour');
 
     const startTour = () => {
-      overlay?.setAttribute('hidden', '');
+      if (overlay) {
+        overlay.style.display = 'none';
+      }
       driver.start();
       window.localStorage.setItem(
         'expoTourState',
@@ -444,16 +446,19 @@
     };
 
     const dismissOverlay = () => {
-      overlay?.setAttribute('hidden', '');
+      if (overlay) {
+        overlay.style.display = 'none';
+      }
       window.localStorage.setItem(
         'expoTourState',
         JSON.stringify({ hasSeen: state.hasSeen, dismissed: true })
       );
     };
 
-    if (!state.dismissed && overlay) {
-      overlay.removeAttribute('hidden');
-    }
+    // Disable auto-show for now - user can still click "Take a quick tour" button
+    // if (!state.dismissed && overlay) {
+    //   overlay.removeAttribute('hidden');
+    // }
 
     startCTA?.addEventListener('click', startTour);
     skipCTA?.addEventListener('click', dismissOverlay);
