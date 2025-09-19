@@ -1,6 +1,7 @@
 (function () {
   const isFramed = window.self !== window.top;
-  const pendingFallbacks = new Map();
+  const REQUEST_TIMEOUT_MS = 2000;
+  const pendingRequests = new Map();
 
   const defaultConfig = {
     baseSpaceUrl: 'https://app.spatial.chat/s/9jfap09DMzRvev3yLVpK',
@@ -57,6 +58,61 @@
   }
 
   const config = buildConfig();
+
+  function buildFallbackUrl(roomId, fallbackBase = config.baseSpaceUrl) {
+    if (!fallbackBase) {
+      return '';
+    }
+
+    try {
+      const url = new URL(fallbackBase, window.location.href);
+
+      if (roomId) {
+        url.searchParams.set('room', roomId);
+      }
+
+      return url.toString();
+    } catch (_error) {
+      return fallbackBase;
+    }
+  }
+
+  function ensureNotificationHost() {
+    let host = document.getElementById('expo-notifications');
+
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'expo-notifications';
+      document.body.appendChild(host);
+    }
+
+    return host;
+  }
+
+  function showNotification(message, fallbackUrl) {
+    const host = ensureNotificationHost();
+    host.innerHTML = '';
+
+    const panel = document.createElement('div');
+    panel.className = 'expo-notification';
+
+    const text = document.createElement('span');
+    text.className = 'expo-notification__message';
+    text.textContent = message;
+    panel.appendChild(text);
+
+    if (fallbackUrl) {
+      const link = document.createElement('a');
+      link.className = 'expo-notification__action';
+      link.href = fallbackUrl;
+      link.rel = 'noopener noreferrer';
+      link.target = isFramed ? '_blank' : '_self';
+      link.textContent = 'Open in SpatialChat';
+      panel.appendChild(link);
+    }
+
+    host.appendChild(panel);
+  }
 
   function generateRequestId(prefix) {
     return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -117,56 +173,20 @@
     }
   }
 
-  function openInNewTab(url) {
-    if (!url) {
-      return;
+  function resolveRoomId(element) {
+    const configuredId = configuredTargets.get(element);
+
+    if (configuredId && configuredId.trim()) {
+      return configuredId.trim();
     }
 
-    const popup = window.open(url, '_blank', 'noopener');
-    if (!popup) {
-      window.location.href = url;
-    }
-  }
+    const dataId = element.getAttribute('data-room-id');
 
-  function scheduleFallbackNavigation(requestId, url) {
-    if (!requestId || !url) {
-      return;
+    if (dataId && dataId.trim()) {
+      return dataId.trim();
     }
 
-    let fallbackTimer = 0;
-
-    const cleanup = () => {
-      if (fallbackTimer) {
-        window.clearTimeout(fallbackTimer);
-        fallbackTimer = 0;
-      }
-
-      document.removeEventListener('visibilitychange', cancelOnHidden);
-      window.removeEventListener('pagehide', cancelOnPageHide);
-      pendingFallbacks.delete(requestId);
-    };
-
-    const fallback = () => {
-      cleanup();
-      openInNewTab(url);
-    };
-
-    const cancelOnHidden = () => {
-      if (document.hidden) {
-        cleanup();
-      }
-    };
-
-    const cancelOnPageHide = () => {
-      cleanup();
-    };
-
-    fallbackTimer = window.setTimeout(fallback, 1500);
-
-    document.addEventListener('visibilitychange', cancelOnHidden);
-    window.addEventListener('pagehide', cancelOnPageHide, { once: true });
-
-    pendingFallbacks.set(requestId, { cleanup, fallback });
+    return extractRoomIdFromUrl(element.getAttribute('href'));
   }
 
   function extractRoomIdFromUrl(url) {
@@ -184,33 +204,11 @@
     }
   }
 
-  function buildFallbackUrl(roomId, originalUrl) {
-    if (roomId && config.baseSpaceUrl) {
-      try {
-        const base = new URL(config.baseSpaceUrl, window.location.href);
-        base.searchParams.set('room', roomId);
-
-        return base.toString();
-      } catch (_error) {
-        // If the base URL is invalid we will fall back to whatever was provided.
-      }
-    }
-
-    return originalUrl;
-  }
-
-  function resolveRoomId(element) {
-    const configuredId = configuredTargets.get(element);
-    if (configuredId && configuredId.trim()) {
-      return configuredId.trim();
-    }
-
-    const dataId = element.getAttribute('data-room-id');
-    if (dataId && dataId.trim()) {
-      return dataId.trim();
-    }
-
-    return extractRoomIdFromUrl(element.getAttribute('href'));
+  function handleNavigationFailure(fallbackUrl) {
+    showNotification(
+      'We could not jump into that hall automatically. Use the direct link below to open it in SpatialChat.',
+      fallbackUrl
+    );
   }
 
   function handleNavigationResult(event) {
@@ -236,20 +234,28 @@
       return;
     }
 
-    const entry = pendingFallbacks.get(payload.requestId);
+    const entry = pendingRequests.get(payload.requestId);
 
     if (!entry) {
       return;
     }
 
+    pendingRequests.delete(payload.requestId);
+
+    if (entry.timer) {
+      window.clearTimeout(entry.timer);
+    }
+
     const success = Boolean(payload.data && payload.data.success);
 
     if (success) {
-      entry.cleanup();
+      entry.onSuccess && entry.onSuccess();
     } else {
-      entry.fallback();
+      entry.onFailure && entry.onFailure();
     }
   }
+
+  window.addEventListener('message', handleNavigationResult);
 
   const configuredTargets = new Map();
 
@@ -266,7 +272,7 @@
           configuredTargets.set(element, roomId);
         });
       } catch (_error) {
-        // Invalid selectors are ignored.
+        // ignore invalid selectors
       }
     });
   }
@@ -292,7 +298,7 @@
   function wireElement(element) {
     const originalHref = element.getAttribute('href') || '';
     const roomId = resolveRoomId(element);
-    const fallbackUrl = buildFallbackUrl(roomId, originalHref);
+    const fallbackUrl = buildFallbackUrl(roomId, originalHref || config.baseSpaceUrl);
 
     if (roomId && fallbackUrl) {
       element.setAttribute('data-room-id', roomId);
@@ -311,14 +317,15 @@
         return;
       }
 
-      if (!isFramed) {
-        return;
-      }
-
       event.preventDefault();
 
       const resolvedRoomId = resolveRoomId(element);
       const resolvedFallback = buildFallbackUrl(resolvedRoomId, element.getAttribute('href'));
+
+      if (!isFramed) {
+        window.location.href = resolvedFallback || originalHref || config.baseSpaceUrl;
+        return;
+      }
 
       if (resolvedRoomId) {
         if (tryTopNavigation(resolvedFallback)) {
@@ -328,39 +335,125 @@
         const requestId = requestParentRoomNavigation(resolvedRoomId);
 
         if (requestId) {
-          scheduleFallbackNavigation(requestId, resolvedFallback);
+          const timer = window.setTimeout(() => {
+            pendingRequests.delete(requestId);
+            handleNavigationFailure(resolvedFallback);
+          }, REQUEST_TIMEOUT_MS);
+
+          pendingRequests.set(requestId, {
+            timer,
+            onFailure: () => handleNavigationFailure(resolvedFallback),
+          });
 
           return;
         }
+      }
 
-        openInNewTab(resolvedFallback);
+      const parentRequestId = requestParentNavigation(resolvedFallback || originalHref);
+
+      if (parentRequestId) {
+        const timer = window.setTimeout(() => {
+          pendingRequests.delete(parentRequestId);
+          handleNavigationFailure(resolvedFallback || originalHref || config.baseSpaceUrl);
+        }, REQUEST_TIMEOUT_MS);
+
+        pendingRequests.set(parentRequestId, {
+          timer,
+          onFailure: () => handleNavigationFailure(resolvedFallback || originalHref || config.baseSpaceUrl),
+        });
 
         return;
       }
 
-      if (tryTopNavigation(originalHref)) {
-        return;
-      }
-
-      const requestId = requestParentNavigation(originalHref);
-
-      if (requestId) {
-        scheduleFallbackNavigation(requestId, originalHref);
-
-        return;
-      }
-
-      openInNewTab(originalHref);
+      handleNavigationFailure(resolvedFallback || originalHref || config.baseSpaceUrl);
     });
   }
 
-  window.addEventListener('message', handleNavigationResult);
+  function initTour() {
+    if (typeof window.Driver === 'undefined') {
+      return;
+    }
+
+    const driver = new window.Driver({
+      allowClose: false,
+      opacity: 0.75,
+      animate: true,
+      padding: 8,
+    });
+
+    driver.defineSteps([
+      {
+        element: '.map-board',
+        popover: {
+          title: 'Explore the expo map',
+          description: 'Pick any hall to jump straight into its SpatialChat experience.',
+          position: 'bottom',
+        },
+      },
+      {
+        element: '#hall-a-breakout',
+        popover: {
+          title: 'Every hall has three rooms',
+          description: 'Breakout, Stage, and Workplace buttons map to live SpatialChat rooms.',
+          position: 'left',
+        },
+      },
+      {
+        element: '.home-footer',
+        popover: {
+          title: 'Prefer quick links?',
+          description: 'Use the shortcuts here if you already know where you want to go.',
+          position: 'top',
+        },
+      },
+    ]);
+
+    const storedState = window.localStorage.getItem('expoTourState');
+    const state = storedState ? JSON.parse(storedState) : { hasSeen: false, dismissed: false };
+
+    const overlay = document.getElementById('expo-overlay');
+    const startCTA = document.getElementById('start-tour-now');
+    const skipCTA = document.getElementById('skip-tour');
+    const relaunchButton = document.getElementById('start-tour');
+
+    const startTour = () => {
+      overlay?.setAttribute('hidden', '');
+      driver.reset();
+      driver.start();
+      window.localStorage.setItem(
+        'expoTourState',
+        JSON.stringify({ hasSeen: true, dismissed: true })
+      );
+    };
+
+    const dismissOverlay = () => {
+      overlay?.setAttribute('hidden', '');
+      window.localStorage.setItem(
+        'expoTourState',
+        JSON.stringify({ hasSeen: true, dismissed: true })
+      );
+    };
+
+    if (!state.dismissed && overlay) {
+      overlay.removeAttribute('hidden');
+    }
+
+    startCTA?.addEventListener('click', startTour);
+    skipCTA?.addEventListener('click', dismissOverlay);
+
+    relaunchButton?.addEventListener('click', () => {
+      driver.reset();
+      driver.start();
+      window.localStorage.setItem(
+        'expoTourState',
+        JSON.stringify({ hasSeen: true, dismissed: true })
+      );
+    });
+  }
 
   document.addEventListener('DOMContentLoaded', () => {
     registerConfiguredTargets();
-
-    const elements = collectClickableElements();
-
-    elements.forEach(wireElement);
+    collectClickableElements().forEach(wireElement);
+    initTour();
   });
 })();

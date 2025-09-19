@@ -9,7 +9,7 @@ Edit `config.js` and update two things:
 - `baseSpaceUrl` – your SpatialChat space URL without the `room` query parameter (you can keep any other parameters, we’ll just add `room=<roomId>` when needed).
 - `links` – a simple map of CSS selectors to SpatialChat room IDs. The sample selectors (`#hall-a-breakout`, etc.) match the IDs baked into each hall page, so you can just replace the room IDs with your own.
 
-That’s it—the script takes care of wiring click handlers, posting `navigate_room` messages to the parent, and falling back to opening the room in a new tab if navigation is blocked.
+That’s it—the script takes care of wiring click handlers, posting `navigate_room` messages to the parent, and surfacing a friendly inline notification when navigation is blocked (complete with a direct “Open in SpatialChat” link so attendees never lose context).
 
 ## 2. Publish the static files
 
@@ -39,17 +39,21 @@ Add an iframe element in SpatialChat that points to the published `index.html`, 
 ></iframe>
 ```
 
-When a participant clicks a hall tile, the iframe asks the host app to join the mapped room (`navigate_room`). No additional setup is required—the host now trusts the iframe’s own origin automatically, and keeps all validation (room existence, permissions, etc.) on the SpatialChat side.
+When a participant clicks a hall tile, the iframe asks the host app to join the mapped room (`navigate_room`). No additional setup is required—the host now trusts the iframe’s own origin automatically, and keeps all validation (room existence, permissions, etc.) on the SpatialChat side. If the host refuses (for example, the room ID doesn’t exist yet), the page shows an inline toast instead of opening a new tab.
 
 ## 4. Optional fallbacks
 
-If a room ID can’t be matched, the link’s original `href` is used as a fallback. Feel free to leave existing SpatialChat URLs in the markup; the script will overwrite them with URLs derived from `baseSpaceUrl` so you always have a consistent backup.
+If a room ID can’t be matched, the link’s original `href` is used as a fallback. Feel free to leave existing SpatialChat URLs in the markup; the script will overwrite them with URLs derived from `baseSpaceUrl` so you always have a consistent backup (the notification’s button links to the same URL).
+
+## 5. Guided welcome tour
+
+The homepage ships with a lightweight Driver.js tour (loaded from CDN, no bundler needed) that runs once for new visitors and can always be relaunched via the **Take a quick tour** button. It highlights the expo map, a sample hall tile, and the quick links footer to orient guests before they dive in.
 
 ## How it works under the hood
 
 - `script.js` reads `window.SpatialChatConfig`, maps selectors → room IDs, and intercepts clicks.
 - Each click sends `{name: 'navigate_room', payload: { roomId }}` via `postMessage`.
-- The SpatialChat host validates the request, joins the room for the user, and sends back a `navigation_result` message. If the navigation fails (or times out) the iframe falls back to opening the room in a new tab.
+- The SpatialChat host validates the request, joins the room for the user, and sends back a `navigation_result` message. If the navigation fails (or times out) the iframe surfaces an inline notification with the direct link instead of popping a new tab.
 
 Because navigation approval happens inside SpatialChat, the iframe can stay sandboxed (`allow-top-navigation-by-user-activation` is still off) and doesn’t expose a backdoor for untrusted content.
 
