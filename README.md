@@ -45,10 +45,6 @@ When a participant clicks a hall tile, the iframe asks the host app to join the 
 
 If a room ID can’t be matched, the link’s original `href` is used as a fallback. Feel free to leave existing SpatialChat URLs in the markup; the script will overwrite them with URLs derived from `baseSpaceUrl` so you always have a consistent backup (the notification’s button links to the same URL).
 
-## 5. Guided welcome tour
-
-The homepage ships with a lightweight Driver.js tour (loaded from CDN, no bundler needed) that runs once for new visitors and can always be relaunched via the **Take a quick tour** button. It highlights the expo map, a sample hall tile, and the quick links footer to orient guests before they dive in.
-
 ## How it works under the hood
 
 - `script.js` reads `window.SpatialChatConfig`, maps selectors → room IDs, and intercepts clicks.

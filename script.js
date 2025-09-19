@@ -308,7 +308,8 @@
   function wireElement(element) {
     const originalHref = element.getAttribute('href') || '';
     const roomId = resolveRoomId(element);
-    const fallbackUrl = buildFallbackUrl(roomId, originalHref || config.baseSpaceUrl);
+    const fallbackBase = config.baseSpaceUrl || originalHref;
+    const fallbackUrl = buildFallbackUrl(roomId, fallbackBase);
 
     if (roomId && fallbackUrl) {
       element.setAttribute('data-room-id', roomId);
@@ -330,10 +331,13 @@
       event.preventDefault();
 
       const resolvedRoomId = resolveRoomId(element);
-      const resolvedFallback = buildFallbackUrl(resolvedRoomId, element.getAttribute('href'));
+      const resolvedFallback = buildFallbackUrl(
+        resolvedRoomId,
+        config.baseSpaceUrl || element.getAttribute('href') || originalHref
+      );
 
       if (!isFramed) {
-        window.location.href = resolvedFallback || originalHref || config.baseSpaceUrl;
+        window.location.href = resolvedFallback || config.baseSpaceUrl || originalHref;
         return;
       }
 
@@ -359,12 +363,12 @@
         }
       }
 
-      const parentRequestId = requestParentNavigation(resolvedFallback || originalHref);
+      const parentRequestId = requestParentNavigation(resolvedFallback || config.baseSpaceUrl || originalHref);
 
       if (parentRequestId) {
         const timer = window.setTimeout(() => {
           pendingRequests.delete(parentRequestId);
-          handleNavigationFailure(resolvedFallback || originalHref || config.baseSpaceUrl);
+          handleNavigationFailure(resolvedFallback || config.baseSpaceUrl || originalHref);
         }, REQUEST_TIMEOUT_MS);
 
         pendingRequests.set(parentRequestId, {
@@ -375,106 +379,12 @@
         return;
       }
 
-      handleNavigationFailure(resolvedFallback || originalHref || config.baseSpaceUrl);
-    });
-  }
-
-  function initTour() {
-    if (typeof window.Driver === 'undefined') {
-      return;
-    }
-
-    const driver = new window.Driver({
-      allowClose: false,
-      opacity: 0.75,
-      animate: true,
-      padding: 8,
-    });
-
-    driver.defineSteps([
-      {
-        element: '.page-header h1',
-        popover: {
-          title: 'Welcome to Spatial Expo Hall',
-          description: 'Navigate through the interactive expo floor to explore different halls and experiences.',
-          position: 'bottom',
-        },
-      },
-      {
-        element: '.map-board',
-        popover: {
-          title: 'Interactive Expo Map',
-          description: 'Click on any hall zone to explore its dedicated experiences. Each hall has unique rooms and content.',
-          position: 'top',
-        },
-      },
-      {
-        element: '.zone-a',
-        popover: {
-          title: 'Hall Navigation',
-          description: 'Click any hall to explore Breakout, Stage, and Workplace rooms inside SpatialChat.',
-          position: 'right',
-        },
-      },
-      {
-        element: '#start-tour',
-        popover: {
-          title: 'Need Help?',
-          description: 'You can always restart the tour by clicking this button.',
-          position: 'top',
-        },
-      },
-    ]);
-
-    const storedState = window.localStorage.getItem('expoTourState');
-    const state = storedState ? JSON.parse(storedState) : { hasSeen: false, dismissed: false };
-
-    const overlay = document.getElementById('expo-overlay');
-    const startCTA = document.getElementById('start-tour-now');
-    const skipCTA = document.getElementById('skip-tour');
-    const relaunchButton = document.getElementById('start-tour');
-
-    const startTour = () => {
-      if (overlay) {
-        overlay.style.display = 'none';
-      }
-      driver.start();
-      window.localStorage.setItem(
-        'expoTourState',
-        JSON.stringify({ hasSeen: true, dismissed: true })
-      );
-    };
-
-    const dismissOverlay = () => {
-      if (overlay) {
-        overlay.style.display = 'none';
-      }
-      window.localStorage.setItem(
-        'expoTourState',
-        JSON.stringify({ hasSeen: state.hasSeen, dismissed: true })
-      );
-    };
-
-    // Disable auto-show for now - user can still click "Take a quick tour" button
-    // if (!state.dismissed && overlay) {
-    //   overlay.removeAttribute('hidden');
-    // }
-
-    startCTA?.addEventListener('click', startTour);
-    skipCTA?.addEventListener('click', dismissOverlay);
-
-    relaunchButton?.addEventListener('click', () => {
-      driver.start();
-      window.localStorage.setItem(
-        'expoTourState',
-        JSON.stringify({ hasSeen: true, dismissed: true })
-      );
+      handleNavigationFailure(resolvedFallback || config.baseSpaceUrl || originalHref);
     });
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     registerConfiguredTargets();
     collectClickableElements().forEach(wireElement);
-    initTour();
   });
 })();
