@@ -393,17 +393,17 @@
       {
         element: '#hall-a-breakout',
         popover: {
-          title: 'Every hall has three rooms',
-          description: 'Breakout, Stage, and Workplace buttons map to live SpatialChat rooms.',
-          position: 'left',
+          title: 'Choose a room',
+          description: 'Each hall opens Breakout, Stage, or Workplace rooms inside SpatialChat. Pick one to continue.',
+          position: 'bottom',
         },
       },
       {
-        element: '.home-footer',
+        element: '#expo-notifications',
         popover: {
-          title: 'Prefer quick links?',
-          description: 'Use the shortcuts here if you already know where you want to go.',
-          position: 'top',
+          title: 'One more thing',
+          description: 'If the host can’t switch rooms automatically, we’ll show a toast right here with a direct SpatialChat link.',
+          position: 'left',
         },
       },
     ]);
@@ -418,7 +418,6 @@
 
     const startTour = () => {
       overlay?.setAttribute('hidden', '');
-      driver.reset();
       driver.start();
       window.localStorage.setItem(
         'expoTourState',
@@ -430,7 +429,7 @@
       overlay?.setAttribute('hidden', '');
       window.localStorage.setItem(
         'expoTourState',
-        JSON.stringify({ hasSeen: true, dismissed: true })
+        JSON.stringify({ hasSeen: state.hasSeen, dismissed: true })
       );
     };
 
@@ -442,7 +441,6 @@
     skipCTA?.addEventListener('click', dismissOverlay);
 
     relaunchButton?.addEventListener('click', () => {
-      driver.reset();
       driver.start();
       window.localStorage.setItem(
         'expoTourState',
