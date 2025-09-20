@@ -29,7 +29,7 @@ Add an iframe element in SpatialChat that points to the published `index.html`, 
 
 ```html
 <iframe
-  src="https://spatialchat.github.io/tmp_customer_iframe/index.html"
+  src="https://vexpo.space"
   width="1920"
   height="1080"
   loading="lazy"

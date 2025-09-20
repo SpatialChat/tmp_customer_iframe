@@ -3,7 +3,7 @@ window.SpatialChatConfig = {
    * The base URL of your SpatialChat space without the ?room parameter.
    * We will append ?room=<roomId> automatically.
    */
-  baseSpaceUrl: 'https://app.spatialchat.dev/s/nr3egHDRSL9spI0z0lLM',
+  baseSpaceUrl: 'https://app.spatialchat.io/s/nr3egHDRSL9spI0z0lLM',
 
   /**
    * Map each clickable element to the SpatialChat room ID it should open.
