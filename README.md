@@ -1,56 +1,212 @@
-# SpatialChat Expo Demo
+# SpatialChat Conference Navigator Demo
 
-This repo is a drop-in demo that shows how to drive SpatialChat room navigation from a sandboxed iframe. Fork it, tweak one config file, publish it (GitHub Pages works great), and embed the resulting URL inside SpatialChat.
+Interactive landing pages that navigate between SpatialChat rooms using the SpatialChat Iframe SDK.
 
-## 1. Configure the rooms
+## Quick Start
 
-Edit `config.js` and update two things:
+### 1. Configure
 
-- `baseSpaceUrl` – your SpatialChat space URL without the `room` query parameter (you can keep any other parameters, we’ll just add `room=<roomId>` when needed).
-- `links` – a simple map of CSS selectors to SpatialChat room IDs. The sample selectors (`#hall-a-breakout`, etc.) match the IDs baked into each hall page, so you can just replace the room IDs with your own.
+Edit `config.js`:
 
-That’s it—the script takes care of wiring click handlers, posting `navigate_room` messages to the parent, and surfacing a friendly inline notification when navigation is blocked (complete with a direct “Open in SpatialChat” link so attendees never lose context).
+```javascript
+window.SpatialChatConfig = {
+  // Your SpatialChat instance URL (no trailing slash)
+  baseUrl: 'https://dev.spatialchat.dev',
+  
+  // Your space ID
+  spaceId: 'your-space-id-here',
+  
+  // Map button IDs to room IDs
+  links: {
+    '#hall-a-breakout': 'room-id-1',
+    '#hall-a-stage': 'room-id-2',
+    // ... add more mappings
+  }
+};
+```
 
-## 2. Publish the static files
+The SDK will automatically load from: `{baseUrl}/spatialchat-iframe-sdk.js`
 
-Any static host works. For GitHub Pages:
+### 2. Deploy
 
+Deploy all files to any static hosting:
+
+**GitHub Pages:**
 ```bash
+git init
 git add .
-git commit -m "Update SpatialChat rooms"
+git commit -m "Initial commit"
 git push origin main
+# Enable Pages in repo settings
 ```
 
-GitHub Pages will serve everything at `https://<your-org>.github.io/<repo>/`. Use that URL in the iframe embed.
-
-## 3. Embed inside SpatialChat
-
-Add an iframe element in SpatialChat that points to the published `index.html`, e.g.
-
-```html
-<iframe
-  src="https://vexpo.space"
-  width="1920"
-  height="1080"
-  loading="lazy"
-  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-modals allow-downloads"
-  referrerpolicy="strict-origin"
-  allow="encrypted-media"
-></iframe>
+**Simple HTTP Server (for testing):**
+```bash
+python3 -m http.server 8000
+# Visit: http://localhost:8000
 ```
 
-When a participant clicks a hall tile, the iframe asks the host app to join the mapped room (`navigate_room`). No additional setup is required—the host now trusts the iframe’s own origin automatically, and keeps all validation (room existence, permissions, etc.) on the SpatialChat side. If the host refuses (for example, the room ID doesn’t exist yet), the page shows an inline toast instead of opening a new tab.
+### 3. Embed in SpatialChat
 
-## 4. Optional fallbacks
+1. Go to your SpatialChat space
+2. Add an **Iframe Element** to a room
+3. Set URL to: `https://your-deployed-url.com/index.html`
+4. Users can now navigate between rooms by clicking buttons!
 
-If a room ID can’t be matched, the link’s original `href` is used as a fallback. Feel free to leave existing SpatialChat URLs in the markup; the script will overwrite them with URLs derived from `baseSpaceUrl` so you always have a consistent backup (the notification’s button links to the same URL).
+## File Structure
 
-## How it works under the hood
+```
+├── config.js           ← Configuration (baseUrl, spaceId, room mappings)
+├── load-sdk.js         ← Dynamically loads SDK from baseUrl
+├── script.js           ← Navigation logic using SpatialChatAPI
+├── styles.css          ← Styling
+├── index.html          ← Main landing page
+├── hall-a.html         ← Hall A page
+├── hall-b.html         ← Hall B page
+└── ... (more halls)
+```
 
-- `script.js` reads `window.SpatialChatConfig`, maps selectors → room IDs, and intercepts clicks.
-- Each click sends `{name: 'navigate_room', payload: { roomId }}` via `postMessage`.
-- The SpatialChat host validates the request, joins the room for the user, and sends back a `navigation_result` message. If the navigation fails (or times out) the iframe surfaces an inline notification with the direct link instead of popping a new tab.
+## How It Works
 
-Because navigation approval happens inside SpatialChat, the iframe can stay sandboxed (`allow-top-navigation-by-user-activation` is still off) and doesn’t expose a backdoor for untrusted content.
+### Load Order
 
-Happy demoing! If you need to add more halls or buttons, just give them IDs and drop the IDs into `config.js`.
+1. **config.js** - Defines `baseUrl`, `spaceId`, room mappings
+2. **load-sdk.js** - Dynamically loads SDK from `{baseUrl}/spatialchat-iframe-sdk.js`
+3. **script.js** - Uses `SpatialChatAPI.navigateToRoom()` to navigate
+
+### Navigation Flow
+
+```
+User clicks button
+    ↓
+script.js calls SpatialChatAPI.navigateToRoom(roomId)
+    ↓
+SDK sends postMessage to parent
+    ↓
+SpatialChat platform navigates to room
+    ↓
+SDK resolves Promise
+    ↓
+script.js shows success notification
+```
+
+## Configuration Options
+
+### baseUrl
+
+The URL of your SpatialChat instance (no trailing slash).
+
+```javascript
+baseUrl: 'https://dev.spatialchat.dev'
+```
+
+The SDK will be loaded from: `{baseUrl}/spatialchat-iframe-sdk.js`
+
+### spaceId
+
+Your space ID (from your space URL).
+
+If your space URL is: `https://dev.spatialchat.dev/s/abc123xyz`
+
+Then your spaceId is: `abc123xyz`
+
+### links
+
+Maps CSS selectors to room IDs. When the selected element is clicked, navigate to that room.
+
+```javascript
+links: {
+  '#button-id': 'room-id-to-navigate-to',
+  '.css-class': 'another-room-id',
+}
+```
+
+## Customization
+
+### Adding New Halls
+
+1. Copy `hall-a.html` to `hall-m.html`
+2. Edit content (title, buttons, etc.)
+3. Update `config.js` with new room mappings
+4. Add navigation buttons in other pages
+
+### Changing Styles
+
+Edit `styles.css` to customize:
+- Colors
+- Layout
+- Button styles
+- Animations
+
+### Adding Features
+
+Edit `script.js` to add:
+- Analytics tracking
+- Loading animations
+- Error handling
+- Custom notifications
+
+## Debug Mode
+
+The SDK automatically enables debug mode on localhost. You'll see console logs:
+
+```
+[load-sdk] SpatialChat SDK loaded successfully from: https://dev.spatialchat.dev/spatialchat-iframe-sdk.js
+[SpatialChatAPI] Initialized successfully in iframe context
+[SpatialChatAPI] Sending message: {name: "navigate_room", payload: {...}}
+[SpatialChatAPI] Received message: {name: "navigation_result", data: {...}}
+```
+
+## Troubleshooting
+
+### SDK fails to load
+
+**Error**: `Failed to load SpatialChat SDK from: ...`
+
+**Fix**: 
+- Verify `baseUrl` in `config.js` is correct
+- Ensure SDK is deployed at `{baseUrl}/spatialchat-iframe-sdk.js`
+- Check browser console for CORS errors
+
+### Navigation timeout
+
+**Error**: `Request timeout after 5000ms`
+
+**Fix**:
+- Verify room IDs in `config.js` are correct
+- Check network connectivity
+- Increase timeout: `SpatialChatAPI.navigateToRoom(roomId, {timeout: 10000})`
+
+### Buttons don't work
+
+**Fix**:
+- Check browser console for errors
+- Verify script load order: config.js → load-sdk.js → script.js
+- Ensure you're testing inside a SpatialChat iframe element
+
+## Production Checklist
+
+- [ ] Update `baseUrl` in `config.js` to production URL
+- [ ] Update `spaceId` in `config.js`
+- [ ] Update all room IDs in `links` mapping
+- [ ] Test all navigation buttons
+- [ ] Deploy to production hosting (GitHub Pages, S3, etc.)
+- [ ] Create iframe element in SpatialChat space
+- [ ] Point iframe to deployed URL
+- [ ] Test inside SpatialChat
+
+## Resources
+
+- **SDK Documentation**: See `frontend/public/SPATIALCHAT-SDK-README.md` in main repo
+- **Architecture Guide**: See `frontend/SDK-ARCHITECTURE.md` in main repo
+- **API Reference**: https://your-docs-url.com/iframe-sdk
+
+## Support
+
+- Questions? Contact: support@spatialchat.com
+- Issues? File a ticket: https://support.spatialchat.com
+
+---
+
+**Last Updated**: 2024-12-09
+**SDK Version**: v1.0.0

@@ -1,9 +1,15 @@
 window.SpatialChatConfig = {
   /**
-   * The base URL of your SpatialChat space without the ?room parameter.
-   * We will append ?room=<roomId> automatically.
+   * The base URL of your SpatialChat instance (without trailing slash).
+   * Used to load the SDK and construct space URLs.
    */
-  baseSpaceUrl: 'https://app.spatialchat.io/s/nr3egHDRSL9spI0z0lLM',
+  baseUrl: 'https://dev.spatialchat.dev',
+
+  /**
+   * Your space ID (extracted from your space URL).
+   * Full space URL will be: {baseUrl}/s/{spaceId}
+   */
+  spaceId: 'nr3egHDRSL9spI0z0lLM',
 
   /**
    * Map each clickable element to the SpatialChat room ID it should open.
@@ -59,3 +65,7 @@ window.SpatialChatConfig = {
     '#hall-l-workplace': 'tQl0rmYFha0DxC3LvEsU',
   },
 };
+
+// Computed properties for convenience
+window.SpatialChatConfig.sdkUrl = window.SpatialChatConfig.baseUrl + '/spatialchat-iframe-sdk.js';
+window.SpatialChatConfig.baseSpaceUrl = window.SpatialChatConfig.baseUrl + '/s/' + window.SpatialChatConfig.spaceId;
